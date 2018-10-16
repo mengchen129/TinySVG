@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Tiny SVG</title>
+    <link rel="stylesheet" href="http://img.ishequ360.com/lib/bulma.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            -webkit-font-smoothing: antialiased;
+            font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+        }
+
+        header {
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            background: linear-gradient(to bottom, #33c298, #63c47d);
+        }
+
+        .main-title {
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        .sub-title {
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .file-card-list {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .file-card {
+            margin: 0 20px 20px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .file-image {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+
+        .compress-tip {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .compress-rate {
+            color: green;
+            font-weight: bold;
+        }
+
+        .download-btn {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <header>
+        <div class="main-title">TinySVG</div>
+        <div class="sub-title">A Visual Tool for SVG Optimization based on SVGO</div>
+        <a class="button is-info is-large" @click="triggerFileUpload">Upload SVG Files</a>
+    </header>
+
+    <input type="file" ref="files" name="files" multiple @change="onFileUpload" style="display: none;">
+
+    <div class="file-card-list">
+        <div class="file-card" v-for="file in fileList">
+            <img class="file-image" :src="'/download?filename=' + file.origFileName" alt="">
+            <div>{{ file.origFileName }}</div>
+            <div class="compress-tip">{{ file.beforeSize }} → {{ file.afterSize }} <span class="compress-rate">-{{ getCompressRate(file) }}</span></div>
+            <a class="button is-info download-btn" @click="download(file)">Download</a>
+        </div>
+    </div>
+</div>
+
+<script src="http://img.ishequ360.com/lib/vue-2.5.16.min.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            fileList: []
+        },
+        methods: {
+            triggerFileUpload() {
+                this.$refs.files.click();
+            },
+            onFileUpload(e) {
+                let files = e.target.files;
+                if (!files.length) {
+                    alert('未选择文件');
+                    return;
+                }
+
+                let xhr = new XMLHttpRequest();
+                let formData = new FormData();
+                Array.from(files).forEach(file => {
+                    formData.append('files', file);
+                });
+
+                xhr.onreadystatechange = () => {
+                    if (xhr.readyState === 4 && (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304)) {
+                        let resp = JSON.parse(xhr.responseText);
+                        let list = resp.data.list;
+                        list.forEach(item => {
+                            this.fileList.push(item);
+                        });
+                    }
+                };
+
+                xhr.open('POST', '/upload');
+                xhr.send(formData);
+            },
+            getCompressRate(file) {
+                return parseInt((file.beforeSize - file.afterSize) / file.beforeSize * 100) + '%';
+            },
+            download(file) {
+                location.href = '/download?attach=1&filename=' + file.origFileName;
+            }
+        },
+        mounted() {
+
+        }
+    });
+
+</script>
+</body>
+</html>
